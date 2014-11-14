@@ -52,3 +52,9 @@ docs/_build/
 
 # PyBuilder
 target/
+
+*.mov
+*.MOV
+*.png
+*.PNG
+Thumbs.db

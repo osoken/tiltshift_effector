@@ -81,6 +81,7 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='Tilt shift effector');
   parser.add_argument('input',type=str,help='input file');
+  parser.add_argument('--flip',type=int, help='反転。0でx軸、1でy軸、-1で両方の軸について反転する。デフォルトは変更なし');
   parser.add_argument('--resize',type=parse_resize,help='画像サイズの変更。デフォルトは変更なし。width*height e.g. 640*360');
   parser.add_argument('--margin',type=float,nargs=4,help='上のぼかし、上と焦点の間、焦点、下と焦点の間 の幅をそれぞれ、全体を1.0とした割合で与える。下のぼかし幅は残りが割り当てられる。(0.0から1.0の浮動小数、デフォルトは0.5 0.1 0.05 0.08)',default=[0.5,0.1,0.05,0.08]);
   parser.add_argument('--skip',type=int,help='飛ばすフレーム数 (0以上の整数、0で全フレーム、デフォルトは0)',default=0);
@@ -112,6 +113,7 @@ if __name__ == '__main__':
   out = cv2.VideoWriter(ofname, cv2.cv.CV_FOURCC('m','p','4','v'), fps, size);
   mask = gen_mask(orig_size, args.margin[0], args.margin[1], args.margin[2], args.margin[3]);
   frame = 0;
+  out_frame = 0;
 
   while cap.isOpened():
     ret,im_orig = cap.read();
@@ -120,7 +122,10 @@ if __name__ == '__main__':
 #      cv2.imshow('orig_view', im_orig);
       if args.skip > 0 and frame%args.skip != 0:
         continue;
-      im = enhance_image(Image.fromarray(im_orig), args.saturation, args.contrast, args.brightness, args.sharpness);
+      im = Image.fromarray(im_orig);
+      if args.flip != None:
+        im = cv2.flip(im, args.flip);
+      im = enhance_image(im, args.saturation, args.contrast, args.brightness, args.sharpness);
       im_blur = gen_blurred_image(im, args.blur);
       im = np.array(paste_image(im, im_blur, mask));
       if args.resize != None:
@@ -128,10 +133,11 @@ if __name__ == '__main__':
 
       cv2.imshow('view', im);
       out.write(im);
+      out_frame = out_frame + 1;
       key = cv2.waitKey(1);
       if key == 27:
         break;
-      if args.limit != None and frame > args.limit:
+      if args.limit != None and out_frame >= args.limit:
         break;
     else:
       break;
